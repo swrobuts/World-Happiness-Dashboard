@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World Happiness Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">World Happiness Report · 2011–2025</span>
+    <h1>Lebenszufriedenheit weltweit <span class="light">— im Zeitverlauf</span></h1>
+    <div class="sub">Cantril-Ladder-Score (0–10) für 164 Länder. Wie zufrieden Menschen ihr Leben auf einer Leiter von 0 bis 10 einordnen.</div>
+  </header>
+
+  <!-- YEAR BAR (first) -->
+  <div class="yearbar">
+    <div class="yblock"><div class="yr" id="curYear">2025</div><div class="yrlab">Berichtsjahr</div></div>
+    <div class="track" id="track"><svg id="trackSvg"></svg></div>
+    <button class="playbtn" id="playBtn"><span class="picon">▶</span>&nbsp;Abspielen</button>
+  </div>
+
+  <!-- KPI TILES -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- TWIN TABLES -->
+  <div class="section">
+    <div class="stitle"><div class="titlewrap"><span class="kicker">Rangliste</span><span class="msg" id="tblMsg"></span></div><span class="meta">Sparkline 2011–25 · Δ vs. 2011 · Spalte klicken zum Sortieren</span></div>
+    <div class="twin">
+      <div class="panel tbl">
+        <div class="thd"><span class="tt"><span class="dot" style="background:#1F4E8C"></span>Die 10 höchsten Werte</span>
+          <span class="thd-right"><input class="tblsearch" id="searchTop" type="text" placeholder="Land suchen…" autocomplete="off"><span class="ts" id="topYear"></span></span></div>
+        <div class="rhead" data-side="top">
+          <span class="sortable" data-k="rank" style="text-align:right">#</span>
+          <span class="sortable" data-k="name">Land</span>
+          <span class="c2">2011–25</span>
+          <span class="sortable c3" data-k="score">Score</span>
+          <span class="sortable c4" data-k="delta">Δ</span>
+        </div>
+        <div class="listwrap" id="wrapTop"><div id="topList"></div></div>
+        <div class="yearwm" id="wmTop"><span></span></div>
+      </div>
+      <div class="panel tbl">
+        <div class="thd"><span class="tt"><span class="dot" style="background:#B0301A"></span>Die 10 niedrigsten Werte</span>
+          <span class="thd-right"><input class="tblsearch" id="searchFlop" type="text" placeholder="Land suchen…" autocomplete="off"><span class="ts" id="flopYear"></span></span></div>
+        <div class="rhead" data-side="flop">
+          <span class="sortable" data-k="rank" style="text-align:right">#</span>
+          <span class="sortable" data-k="name">Land</span>
+          <span class="c2">2011–25</span>
+          <span class="sortable c3" data-k="score">Score</span>
+          <span class="sortable c4" data-k="delta">Δ</span>
+        </div>
+        <div class="listwrap" id="wrapFlop"><div id="flopList"></div></div>
+        <div class="yearwm" id="wmFlop"><span></span></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--ink40);margin-top:14px;line-height:1.5;">Klick auf ein Land übernimmt es ins Liniendiagramm unten (max. 4). Spaltenkopf klicken sortiert innerhalb der jeweiligen Tabelle.</div>
+  </div>
+
+  <!-- MAP (filter) -->
+  <div class="section">
+    <div class="stitle"><div class="titlewrap"><span class="kicker">Weltweite Verteilung</span><span class="msg" id="viewMsg"></span></div></div>
+    <div class="panel">
+      <div class="vtop">
+        <div class="toggle" id="toggle">
+          <button data-v="map" class="on">Karte</button>
+          <button data-v="bar">Balken</button>
+          <button data-v="dist">Verteilung</button>
+        </div>
+        <div class="filternote" id="filterNote"></div>
+      </div>
+      <div class="mapctl" id="mapctl">
+        <div class="mapctl-slider">
+          <span class="mapctl-lab">Score-Fenster</span>
+          <div class="dual" id="dual">
+            <div class="dual-track"></div>
+            <div class="dual-fill" id="dualFill"></div>
+            <input type="range" id="dualLo" min="1" max="8" step="0.1" value="1">
+            <input type="range" id="dualHi" min="1" max="8" step="0.1" value="8">
+            <div class="dual-bub" id="bubLo">1.0</div>
+            <div class="dual-bub" id="bubHi">8.0</div>
+          </div>
+        </div>
+        <div class="mapctl-distort">
+          <span class="mapctl-lab">Verzerrung</span>
+          <div class="toggle small" id="distortToggle">
+            <button data-d="off" class="on">aus</button>
+            <button data-d="happy">glückliche groß</button>
+            <button data-d="unhappy">unglückliche groß</button>
+          </div>
+        </div>
+      </div>
+      <div class="viewport" id="viewport">
+        <div id="mapStatus" style="height:330px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink60)">Karte lädt…</div>
+        <div class="tip" id="viewtip"></div>
+        <div class="yearwm" id="wmMap" style="z-index:1;"><span></span></div>
+      </div>
+    </div>
+    <div class="flowtag" style="margin-top:12px;"><span class="arrow">↓</span> Auswahl auf der Karte filtert das Liniendiagramm darunter</div>
+  </div>
+
+  <!-- COMPARE -->
+  <div class="section">
+    <div class="stitle"><div class="titlewrap"><span class="kicker">Ländervergleich</span><span class="msg" id="cmpMsg"></span></div><span class="meta" id="cmpMeta"></span></div>
+    <div class="panel">
+      <div class="chips" id="chips"></div>
+      <div class="viewport" id="cmpport" style="padding:10px 8px 6px;">
+        <svg id="chart"></svg>
+        <div class="tip" id="cmptip"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Daten: Supabase WHI-Dashboard</span>
+    <span>Quelle: <a href="https://www.worldhappiness.report/" target="_blank" rel="noopener">worldhappiness.report</a></span>
+  </footer>
+</div>
+
+<div id="kpitip" style="position:fixed;display:none;background:var(--paper);border:1px solid var(--ink);padding:5px 9px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:60;"></div>
+<script src="app.js"></script>
+</body>
+</html>
